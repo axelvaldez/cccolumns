@@ -675,12 +675,22 @@
                         
                         // Replace task list items (do this BEFORE replacing standalone checkboxes)
                         // Checked tasks with strikethrough
-                        html = html.replace(/<li><input\s+checked(?:="")?\s+disabled(?:="")?\s+type="checkbox">\s*(.*?)<\/li>/gi, '<li style="list-style: none; margin-left: -20px;"><s>✓ $1</s></li>');
+                        html = html.replace(/<li><input\s+checked(?:="")?\s+disabled(?:="")?\s+type="checkbox">\s*(.*?)<\/li>/gi, '<li style="list-style: none; margin-left: -20px;"><span class="task-checkbox checked" data-column="' + index + '">✓</span> <s>$1</s></li>');
                         // Unchecked tasks
-                        html = html.replace(/<li><input\s+disabled(?:="")?\s+type="checkbox">\s*(.*?)<\/li>/g, '<li style="list-style: none; margin-left: -20px;">□ $1</li>');
-                        html = html.replace(/<li><input\s+type="checkbox"\s+disabled(?:="")?>\s*(.*?)<\/li>/g, '<li style="list-style: none; margin-left: -20px;">□ $1</li>');
+                        html = html.replace(/<li><input\s+disabled(?:="")?\s+type="checkbox">\s*(.*?)<\/li>/g, '<li style="list-style: none; margin-left: -20px;"><span class="task-checkbox" data-column="' + index + '">□</span> $1</li>');
+                        html = html.replace(/<li><input\s+type="checkbox"\s+disabled(?:="")?>\s*(.*?)<\/li>/g, '<li style="list-style: none; margin-left: -20px;"><span class="task-checkbox" data-column="' + index + '">□</span> $1</li>');
                         
                         viewEl.innerHTML = html;
+                        
+                        // Add click handlers for task checkboxes
+                        viewEl.querySelectorAll('.task-checkbox').forEach(checkbox => {
+                            checkbox.style.cursor = 'pointer';
+                            checkbox.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                const columnIndex = parseInt(checkbox.dataset.column);
+                                this.toggleTask(columnIndex, checkbox);
+                            });
+                        });
                         
                         // Double-click to enter edit mode
                         viewEl.addEventListener('dblclick', () => {
@@ -1109,6 +1119,42 @@
                 textarea.value = value.substring(0, start) + tab + value.substring(end);
                 textarea.selectionStart = textarea.selectionEnd = start + tab.length;
                 textarea.dispatchEvent(new Event('input'));
+            }
+
+            toggleTask(columnIndex, checkboxElement) {
+                const li = checkboxElement.closest('li');
+                const taskText = li.textContent.trim();
+                // Remove the checkbox symbol from the text
+                const taskContent = taskText.substring(1).trim();
+                
+                // Get the current column content
+                let content = this.columns[columnIndex].content;
+                const lines = content.split('\n');
+                
+                // Find and toggle the matching task
+                let found = false;
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    // Check if this line contains our task
+                    if (line.includes(taskContent)) {
+                        if (checkboxElement.classList.contains('checked')) {
+                            // Mark as unchecked: [x] -> [ ]
+                            lines[i] = line.replace(/\[x\]/i, '[ ]');
+                        } else {
+                            // Mark as checked: [ ] -> [x]
+                            lines[i] = line.replace(/\[\s*\]/, '[x]');
+                        }
+                        found = true;
+                        break;
+                    }
+                }
+                
+                if (found) {
+                    // Update the column content
+                    this.columns[columnIndex].content = lines.join('\n');
+                    this.saveColumns();
+                    this.render();
+                }
             }
         }
 
