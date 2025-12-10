@@ -686,6 +686,13 @@
                         // Parse markdown and process task lists
                         let html = marked.parse(column.content);
                         
+                        // Convert shorthand syntax to standard task list syntax before parsing
+                        let processedContent = column.content
+                            .replace(/^(\s*)\+\s+(.*)$/gm, '$1- [ ] $2')  // + → - [ ]
+                            .replace(/^(\s*)×\s+(.*)$/gm, '$1- [x] $2');  // × → - [x]
+                        
+                        html = marked.parse(processedContent);
+                        
                         // Replace task list items (do this BEFORE replacing standalone checkboxes)
                         // Checked tasks with strikethrough
                         html = html.replace(/<li><input\s+checked(?:="")?\s+disabled(?:="")?\s+type="checkbox">\s*(.*?)<\/li>/gi, '<li style="list-style: none; margin-left: -20px;"><span class="task-checkbox checked" data-column="' + index + '">✓</span> <s>$1</s></li>');
@@ -1038,6 +1045,44 @@
                 const cursorPos = textarea.selectionStart;
                 const textBeforeCursor = value.substring(0, cursorPos);
                 const currentLine = textBeforeCursor.split('\n').pop();
+                
+                // Task list with + (unchecked shorthand)
+                const plusMatch = currentLine.match(/^(\s*)(\+)\s+(.*)$/);
+                if (plusMatch) {
+                    e.preventDefault();
+                    const [, indent, , content] = plusMatch;
+                    
+                    if (!content.trim()) {
+                        const lineStart = cursorPos - currentLine.length;
+                        textarea.value = value.substring(0, lineStart) + value.substring(cursorPos);
+                        textarea.selectionStart = textarea.selectionEnd = lineStart;
+                    } else {
+                        const newLine = `\n${indent}+ `;
+                        textarea.value = value.substring(0, cursorPos) + newLine + value.substring(cursorPos);
+                        textarea.selectionStart = textarea.selectionEnd = cursorPos + newLine.length;
+                    }
+                    textarea.dispatchEvent(new Event('input'));
+                    return;
+                }
+                
+                // Task list with × (checked shorthand)
+                const timesMatch = currentLine.match(/^(\s*)(×)\s+(.*)$/);
+                if (timesMatch) {
+                    e.preventDefault();
+                    const [, indent, , content] = timesMatch;
+                    
+                    if (!content.trim()) {
+                        const lineStart = cursorPos - currentLine.length;
+                        textarea.value = value.substring(0, lineStart) + value.substring(cursorPos);
+                        textarea.selectionStart = textarea.selectionEnd = lineStart;
+                    } else {
+                        const newLine = `\n${indent}× `;
+                        textarea.value = value.substring(0, cursorPos) + newLine + value.substring(cursorPos);
+                        textarea.selectionStart = textarea.selectionEnd = cursorPos + newLine.length;
+                    }
+                    textarea.dispatchEvent(new Event('input'));
+                    return;
+                }
                 
                 // Unordered list (-, *, +)
                 const unorderedMatch = currentLine.match(/^(\s*)([-*+])\s+(.*)$/);
