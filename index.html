@@ -501,6 +501,19 @@
             setupEventListeners() {
                 // Keyboard shortcuts
                 document.addEventListener('keydown', (e) => {
+                    // Number keys 1-9 to change visible columns (only when not editing)
+                    if (!this.editMode && !this.editingTitle && !document.getElementById('settings-modal').classList.contains('active')) {
+                        const key = e.key;
+                        if (key >= '1' && key <= '9') {
+                            const requestedColumns = parseInt(key);
+                            // Set to requested or max available columns
+                            this.visibleColumns = Math.min(requestedColumns, this.columns.length);
+                            this.saveVisibleColumns();
+                            this.render();
+                            return;
+                        }
+                    }
+                    
                     // Ctrl+E for edit mode
                     if (e.ctrlKey && e.key === 'e') {
                         e.preventDefault();
