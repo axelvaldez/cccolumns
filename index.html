@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catch-All</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            background: #f5f5f5;
+        }
+
+        #app {
+            display: flex;
+            height: 100vh;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .column {
+            flex-shrink: 0;
+            background: white;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            overflow-y: hidden;
+        }
+
+        .column-title {
+            font-size: 16px;
+            font-weight: 600;
+            padding: 12px 16px;
+            background: #000;
+            color: white;
+            cursor: pointer;
+            flex-shrink: 0;
+            border: none;
+        }
+
+        .column-title:hover {
+            background: #333;
+        }
+
+        .column-title.editing {
+            outline: 2px solid #007bff;
+            outline-offset: -2px;
+            cursor: text;
+        }
+
+        .column-content {
+            flex: 1;
+            position: relative;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .markdown-view {
+            padding: 12px;
+            line-height: 1.6;
+            min-height: 100%;
+        }
+
+        .markdown-view h1 { margin: 20px 0 10px; font-size: 2em; }
+        .markdown-view h2 { margin: 18px 0 9px; font-size: 1.5em; }
+        .markdown-view h3 { margin: 16px 0 8px; font-size: 1.25em; }
+        .markdown-view p { margin: 10px 0; }
+        .markdown-view ul, .markdown-view ol { margin: 10px 0; padding-left: 30px; }
+        .markdown-view li { margin: 4px 0; }
+        .markdown-view code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: monospace; }
+        .markdown-view pre { background: #f4f4f4; padding: 12px; border-radius: 4px; overflow-x: auto; margin: 10px 0; }
+        .markdown-view pre code { background: none; padding: 0; }
+        .markdown-view blockquote { border-left: 4px solid #ddd; padding-left: 16px; margin: 10px 0; color: #666; }
+        .markdown-view a { color: #007bff; text-decoration: none; }
+        .markdown-view a:hover { text-decoration: underline; }
+
+        .markdown-editor {
+            width: 100%;
+            height: 100%;
+            border: none;
+            resize: none;
+            font-family: monospace;
+            font-size: 14px;
+            padding: 12px;
+            line-height: 1.6;
+            background: #fafafa;
+            border: 2px solid #007bff;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .edit-mode-indicator {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #007bff;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 1000;
+            display: none;
+        }
+
+        .edit-mode-indicator.active {
+            display: block;
+        }
+
+        #settings-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: white;
+            border: 1px solid #ddd;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 999;
+            transition: all 0.2s;
+        }
+
+        #settings-button:hover {
+            background: #f5f5f5;
+            transform: rotate(90deg);
+        }
+
+        #settings-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        #settings-modal.active {
+            display: flex;
+        }
+
+        .settings-content {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+
+        .settings-content h2 {
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .setting-item {
+            margin-bottom: 20px;
+        }
+
+        .setting-item label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .setting-item input[type="number"] {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .columns-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+        }
+
+        .column-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin-bottom: 8px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            cursor: move;
+        }
+
+        .column-item.dragging {
+            opacity: 0.5;
+        }
+
+        .column-item.drag-over {
+            border-top: 3px solid #007bff;
+        }
+
+        .column-item-drag-handle {
+            margin-right: 8px;
+            color: #999;
+            cursor: move;
+        }
+
+        .column-item span {
+            flex: 1;
+        }
+
+        .column-item-buttons {
+            display: flex;
+            gap: 4px;
+        }
+
+        .column-item button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .column-item button:hover {
+            background: #c82333;
+        }
+
+        .add-column-btn {
+            width: 100%;
+            padding: 10px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+
+        .add-column-btn:hover {
+            background: #218838;
+        }
+
+        .settings-help {
+            margin-top: 20px;
+            padding: 12px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .sync-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+
+        .sync-section h3 {
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .setting-item input[type="text"],
+        .setting-item input[type="password"] {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: monospace;
+        }
+
+        .sync-status {
+            margin-top: 10px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .sync-status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .sync-status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .sync-status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .sync-button {
+            width: 100%;
+            padding: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+
+        .sync-button:hover {
+            background: #0056b3;
+        }
+
+        .sync-button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="edit-mode-indicator" id="edit-indicator">EDIT MODE - Press Esc to save</div>
+    
+    <button id="settings-button" title="Settings (Ctrl+,)">⚙️</button>
+
+    <div id="settings-modal">
+        <div class="settings-content">
+            <h2>Settings</h2>
+            
+            <div class="setting-item">
+                <label for="visible-columns">Visible Columns:</label>
+                <input type="number" id="visible-columns" min="1" max="10" value="3">
+            </div>
+
+            <div class="setting-item">
+                <label>Manage Columns:</label>
+                <div class="columns-list" id="columns-list"></div>
+                <button class="add-column-btn" id="add-column-btn">+ Add Column</button>
+            </div>
+
+            <div class="sync-section">
+                <h3>GitHub Sync</h3>
+                
+                <div class="setting-item">
+                    <label for="github-token">Personal Access Token:</label>
+                    <input type="password" id="github-token" placeholder="ghp_...">
+                </div>
+
+                <div class="setting-item">
+                    <label for="github-repo">Repository (owner/repo):</label>
+                    <input type="text" id="github-repo" placeholder="username/my-catch-all-data">
+                </div>
+
+                <button class="sync-button" id="sync-now-btn">Sync Now</button>
+                <div id="sync-status"></div>
+                
+                <div class="settings-help" style="margin-top: 15px;">
+                    <strong>Setup:</strong><br>
+                    1. Create a private GitHub repo<br>
+                    2. Generate a token at github.com/settings/tokens (needs 'repo' scope)<br>
+                    3. Enter token and repo above<br>
+                    4. Data syncs automatically on changes
+                </div>
+            </div>
+
+            <div class="settings-help">
+                <strong>Hotkeys:</strong><br>
+                Ctrl+E - Enter/Exit Edit Mode<br>
+                Ctrl+, - Open Settings<br>
+                Esc - Save & Close
+            </div>
+        </div>
+    </div>
+
+    <div id="app"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        class CatchAllApp {
+            constructor() {
+                this.columns = this.loadColumns();
+                this.visibleColumns = this.loadVisibleColumns();
+                this.editMode = false;
+                this.editingTitle = null;
+                this.githubToken = localStorage.getItem('catch-all-github-token') || '';
+                this.githubRepo = localStorage.getItem('catch-all-github-repo') || '';
+                this.syncInProgress = false;
+                this.lastSyncTime = null;
+                
+                this.init();
+                this.setupEventListeners();
+                this.render();
+                
+                // Try to sync on load if configured
+                if (this.githubToken && this.githubRepo) {
+                    this.syncFromGitHub();
+                }
+            }
+
+            init() {
+                // Initialize with 3 columns if none exist
+                if (this.columns.length === 0) {
+                    this.columns = [
+                        { id: 1, title: 'Column 1', content: '# Welcome\n\nStart typing here...' },
+                        { id: 2, title: 'Column 2', content: '# Ideas\n\nYour ideas go here...' },
+                        { id: 3, title: 'Column 3', content: '# Notes\n\nTake notes here...' }
+                    ];
+                    this.saveColumns();
+                }
+            }
+
+            loadColumns() {
+                const saved = localStorage.getItem('catch-all-columns');
+                return saved ? JSON.parse(saved) : [];
+            }
+
+            saveColumns() {
+                localStorage.setItem('catch-all-columns', JSON.stringify(this.columns));
+                // Auto-sync to GitHub if configured
+                if (this.githubToken && this.githubRepo && !this.syncInProgress) {
+                    this.debouncedSyncToGitHub();
+                }
+            }
+
+            loadVisibleColumns() {
+                const saved = localStorage.getItem('catch-all-visible-columns');
+                return saved ? parseInt(saved) : 3;
+            }
+
+            saveVisibleColumns() {
+                localStorage.setItem('catch-all-visible-columns', this.visibleColumns.toString());
+            }
+
+            setupEventListeners() {
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    // Ctrl+E for edit mode
+                    if (e.ctrlKey && e.key === 'e') {
+                        e.preventDefault();
+                        this.toggleEditMode();
+                    }
+                    
+                    // Ctrl+, for settings
+                    if (e.ctrlKey && e.key === ',') {
+                        e.preventDefault();
+                        this.openSettings();
+                    }
+                    
+                    // Esc to exit edit mode or close settings
+                    if (e.key === 'Escape') {
+                        if (document.getElementById('settings-modal').classList.contains('active')) {
+                            this.closeSettings();
+                        } else if (this.editingTitle !== null) {
+                            this.exitTitleEdit();
+                        } else if (this.editMode) {
+                            this.toggleEditMode();
+                        }
+                    }
+                });
+
+                // Settings button
+                document.getElementById('settings-button').addEventListener('click', () => {
+                    this.openSettings();
+                });
+
+                // Click outside modal to close
+                document.getElementById('settings-modal').addEventListener('click', (e) => {
+                    if (e.target.id === 'settings-modal') {
+                        this.closeSettings();
+                    }
+                });
+
+                // Visible columns input
+                document.getElementById('visible-columns').addEventListener('change', (e) => {
+                    this.visibleColumns = parseInt(e.target.value);
+                    this.saveVisibleColumns();
+                    this.render();
+                });
+
+                // Add column button
+                document.getElementById('add-column-btn').addEventListener('click', () => {
+                    this.addColumn();
+                });
+
+                // GitHub sync inputs
+                document.getElementById('github-token').addEventListener('change', (e) => {
+                    this.githubToken = e.target.value;
+                    localStorage.setItem('catch-all-github-token', this.githubToken);
+                });
+
+                document.getElementById('github-repo').addEventListener('change', (e) => {
+                    this.githubRepo = e.target.value;
+                    localStorage.setItem('catch-all-github-repo', this.githubRepo);
+                });
+
+                // Sync now button
+                document.getElementById('sync-now-btn').addEventListener('click', () => {
+                    this.manualSync();
+                });
+            }
+
+            toggleEditMode() {
+                this.editMode = !this.editMode;
+                const indicator = document.getElementById('edit-indicator');
+                
+                if (this.editMode) {
+                    indicator.classList.add('active');
+                } else {
+                    indicator.classList.remove('active');
+                    // Save all columns when exiting edit mode
+                    this.saveAllColumns();
+                }
+                
+                this.render();
+            }
+
+            saveAllColumns() {
+                const textareas = document.querySelectorAll('.markdown-editor');
+                textareas.forEach((textarea, index) => {
+                    if (this.columns[index]) {
+                        this.columns[index].content = textarea.value;
+                    }
+                });
+                this.saveColumns();
+            }
+
+            render() {
+                const app = document.getElementById('app');
+                const columnWidth = 100 / this.visibleColumns;
+                
+                app.innerHTML = '';
+                
+                this.columns.forEach((column, index) => {
+                    const columnEl = document.createElement('div');
+                    columnEl.className = 'column';
+                    columnEl.style.width = `${columnWidth}%`;
+                    
+                    // Title
+                    const titleEl = document.createElement('div');
+                    titleEl.className = 'column-title';
+                    titleEl.textContent = column.title;
+                    titleEl.setAttribute('contenteditable', 'false');
+                    titleEl.dataset.index = index;
+                    
+                    titleEl.addEventListener('dblclick', () => {
+                        this.startTitleEdit(index, titleEl);
+                    });
+                    
+                    titleEl.addEventListener('blur', () => {
+                        if (this.editingTitle === index) {
+                            this.exitTitleEdit();
+                        }
+                    });
+                    
+                    titleEl.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            this.exitTitleEdit();
+                        }
+                        if (e.key === 'Escape') {
+                            e.preventDefault();
+                            this.exitTitleEdit();
+                        }
+                    });
+                    
+                    columnEl.appendChild(titleEl);
+                    
+                    // Content
+                    const contentEl = document.createElement('div');
+                    contentEl.className = 'column-content';
+                    
+                    if (this.editMode) {
+                        const textarea = document.createElement('textarea');
+                        textarea.className = 'markdown-editor';
+                        textarea.value = column.content;
+                        textarea.dataset.index = index;
+                        
+                        // Auto-save on input
+                        textarea.addEventListener('input', () => {
+                            this.columns[index].content = textarea.value;
+                            this.saveColumns();
+                        });
+                        
+                        // Markdown typing helper
+                        textarea.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter') {
+                                this.handleMarkdownEnter(e, textarea);
+                            } else if (e.key === 'Tab') {
+                                this.handleMarkdownTab(e, textarea);
+                            }
+                        });
+                        
+                        contentEl.appendChild(textarea);
+                    } else {
+                        const viewEl = document.createElement('div');
+                        viewEl.className = 'markdown-view';
+                        
+                        // Parse markdown and process task lists
+                        let html = marked.parse(column.content);
+                        
+                        // Replace task list items (do this BEFORE replacing standalone checkboxes)
+                        // Checked tasks with strikethrough
+                        html = html.replace(/<li><input\s+checked(?:="")?\s+disabled(?:="")?\s+type="checkbox">\s*(.*?)<\/li>/gi, '<li style="list-style: none; margin-left: -20px;"><s>✓ $1</s></li>');
+                        // Unchecked tasks
+                        html = html.replace(/<li><input\s+disabled(?:="")?\s+type="checkbox">\s*(.*?)<\/li>/g, '<li style="list-style: none; margin-left: -20px;">□ $1</li>');
+                        html = html.replace(/<li><input\s+type="checkbox"\s+disabled(?:="")?>\s*(.*?)<\/li>/g, '<li style="list-style: none; margin-left: -20px;">□ $1</li>');
+                        
+                        viewEl.innerHTML = html;
+                        
+                        // Double-click to enter edit mode
+                        viewEl.addEventListener('dblclick', () => {
+                            if (!this.editMode) {
+                                this.toggleEditMode();
+                            }
+                        });
+                        
+                        contentEl.appendChild(viewEl);
+                    }
+                    
+                    columnEl.appendChild(contentEl);
+                    app.appendChild(columnEl);
+                });
+            }
+
+            startTitleEdit(index, element) {
+                this.editingTitle = index;
+                element.setAttribute('contenteditable', 'true');
+                element.classList.add('editing');
+                element.focus();
+                
+                // Select all text
+                const range = document.createRange();
+                range.selectNodeContents(element);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
+
+            exitTitleEdit() {
+                if (this.editingTitle === null) return;
+                
+                const titleEl = document.querySelector(`.column-title[data-index="${this.editingTitle}"]`);
+                if (titleEl) {
+                    titleEl.setAttribute('contenteditable', 'false');
+                    titleEl.classList.remove('editing');
+                    this.columns[this.editingTitle].title = titleEl.textContent;
+                    this.saveColumns();
+                }
+                
+                this.editingTitle = null;
+            }
+
+            openSettings() {
+                document.getElementById('settings-modal').classList.add('active');
+                document.getElementById('visible-columns').value = this.visibleColumns;
+                document.getElementById('github-token').value = this.githubToken;
+                document.getElementById('github-repo').value = this.githubRepo;
+                this.renderColumnsList();
+            }
+
+            closeSettings() {
+                document.getElementById('settings-modal').classList.remove('active');
+            }
+
+            renderColumnsList() {
+                const list = document.getElementById('columns-list');
+                list.innerHTML = '';
+                
+                this.columns.forEach((column, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'column-item';
+                    item.draggable = true;
+                    item.dataset.index = index;
+                    
+                    // Drag handle
+                    const dragHandle = document.createElement('span');
+                    dragHandle.className = 'column-item-drag-handle';
+                    dragHandle.textContent = '⋮⋮';
+                    
+                    const span = document.createElement('span');
+                    span.textContent = `${index + 1}. ${column.title}`;
+                    
+                    const buttonsDiv = document.createElement('div');
+                    buttonsDiv.className = 'column-item-buttons';
+                    
+                    const button = document.createElement('button');
+                    button.textContent = 'Remove';
+                    button.addEventListener('click', () => {
+                        this.removeColumn(index);
+                    });
+                    
+                    // Drag events
+                    item.addEventListener('dragstart', (e) => {
+                        item.classList.add('dragging');
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('text/plain', index);
+                    });
+                    
+                    item.addEventListener('dragend', () => {
+                        item.classList.remove('dragging');
+                        document.querySelectorAll('.column-item').forEach(el => {
+                            el.classList.remove('drag-over');
+                        });
+                    });
+                    
+                    item.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        item.classList.add('drag-over');
+                    });
+                    
+                    item.addEventListener('dragleave', () => {
+                        item.classList.remove('drag-over');
+                    });
+                    
+                    item.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        item.classList.remove('drag-over');
+                        
+                        const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                        const toIndex = parseInt(item.dataset.index);
+                        
+                        if (fromIndex !== toIndex) {
+                            this.reorderColumn(fromIndex, toIndex);
+                        }
+                    });
+                    
+                    buttonsDiv.appendChild(button);
+                    item.appendChild(dragHandle);
+                    item.appendChild(span);
+                    item.appendChild(buttonsDiv);
+                    list.appendChild(item);
+                });
+            }
+
+            reorderColumn(fromIndex, toIndex) {
+                const [movedColumn] = this.columns.splice(fromIndex, 1);
+                this.columns.splice(toIndex, 0, movedColumn);
+                this.saveColumns();
+                this.renderColumnsList();
+                this.render();
+            }
+
+            addColumn() {
+                const newId = this.columns.length > 0 ? Math.max(...this.columns.map(c => c.id)) + 1 : 1;
+                this.columns.push({
+                    id: newId,
+                    title: `Column ${newId}`,
+                    content: '# New Column\n\nStart typing...'
+                });
+                this.saveColumns();
+                this.renderColumnsList();
+                this.render();
+            }
+
+            removeColumn(index) {
+                if (this.columns.length <= 1) {
+                    alert('You must have at least one column!');
+                    return;
+                }
+                
+                if (confirm(`Remove "${this.columns[index].title}"?`)) {
+                    this.columns.splice(index, 1);
+                    this.saveColumns();
+                    this.renderColumnsList();
+                    this.render();
+                }
+            }
+
+            // GitHub Sync Methods
+            debouncedSyncToGitHub() {
+                clearTimeout(this.syncTimeout);
+                this.syncTimeout = setTimeout(() => {
+                    this.syncToGitHub();
+                }, 2000); // Wait 2 seconds after last change
+            }
+
+            async syncToGitHub() {
+                if (!this.githubToken || !this.githubRepo || this.syncInProgress) {
+                    console.log('Sync skipped - already in progress or not configured');
+                    return;
+                }
+
+                this.syncInProgress = true;
+                const fileName = 'catch-all-data.json';
+                const data = {
+                    columns: this.columns,
+                    visibleColumns: this.visibleColumns,
+                    lastSync: new Date().toISOString()
+                };
+
+                try {
+                    console.log('Syncing to GitHub...');
+                    // Check if file exists
+                    const checkUrl = `https://api.github.com/repos/${this.githubRepo}/contents/${fileName}`;
+                    const checkResponse = await fetch(checkUrl, {
+                        headers: {
+                            'Authorization': `Bearer ${this.githubToken}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+
+                    let sha = null;
+                    if (checkResponse.ok) {
+                        const fileData = await checkResponse.json();
+                        sha = fileData.sha;
+                        console.log('File exists, updating with sha:', sha);
+                    } else {
+                        console.log('File does not exist, creating new file');
+                    }
+
+                    // Create or update file
+                    const content = btoa(JSON.stringify(data, null, 2));
+                    const updateUrl = `https://api.github.com/repos/${this.githubRepo}/contents/${fileName}`;
+                    const updateResponse = await fetch(updateUrl, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${this.githubToken}`,
+                            'Accept': 'application/vnd.github.v3+json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            message: `Update catch-all data - ${new Date().toLocaleString()}`,
+                            content: content,
+                            sha: sha
+                        })
+                    });
+
+                    if (!updateResponse.ok) {
+                        const errorData = await updateResponse.json();
+                        console.error('GitHub update failed:', errorData);
+                        throw new Error(`GitHub API error: ${updateResponse.status} - ${errorData.message || 'Unknown error'}`);
+                    }
+
+                    this.lastSyncTime = new Date();
+                    console.log('Sync to GitHub successful!');
+                    this.showSyncStatus('Synced to GitHub successfully', 'success');
+                } catch (error) {
+                    console.error('Sync to GitHub failed:', error);
+                    this.showSyncStatus(`Sync failed: ${error.message}`, 'error');
+                } finally {
+                    this.syncInProgress = false;
+                }
+            }
+
+            async syncFromGitHub() {
+                if (!this.githubToken || !this.githubRepo || this.syncInProgress) {
+                    return;
+                }
+
+                this.syncInProgress = true;
+                const fileName = 'catch-all-data.json';
+
+                try {
+                    const url = `https://api.github.com/repos/${this.githubRepo}/contents/${fileName}`;
+                    console.log('Fetching from GitHub:', url);
+                    const response = await fetch(url, {
+                        headers: {
+                            'Authorization': `Bearer ${this.githubToken}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 404) {
+                            console.log('File not found, creating initial file...');
+                            // File doesn't exist yet, create it
+                            this.syncInProgress = false; // Release lock before calling syncToGitHub
+                            await this.syncToGitHub();
+                            return;
+                        }
+                        const errorData = await response.json();
+                        throw new Error(`GitHub API error: ${response.status} - ${errorData.message || 'Unknown error'}`);
+                    }
+
+                    const fileData = await response.json();
+                    const content = JSON.parse(atob(fileData.content));
+
+                    // Update local data
+                    this.columns = content.columns;
+                    this.visibleColumns = content.visibleColumns;
+                    this.lastSyncTime = new Date();
+
+                    // Save to localStorage
+                    localStorage.setItem('catch-all-columns', JSON.stringify(this.columns));
+                    localStorage.setItem('catch-all-visible-columns', this.visibleColumns.toString());
+
+                    this.render();
+                    this.showSyncStatus('Synced from GitHub successfully', 'success');
+                } catch (error) {
+                    console.error('Sync from GitHub failed:', error);
+                    this.showSyncStatus(`Sync failed: ${error.message}`, 'error');
+                } finally {
+                    this.syncInProgress = false;
+                }
+            }
+
+            async manualSync() {
+                console.log('Manual sync started...');
+                this.showSyncStatus('Syncing...', 'info');
+                await this.syncFromGitHub();
+                console.log('Manual sync completed');
+            }
+
+            showSyncStatus(message, type) {
+                console.log(`Sync status: ${message} (${type})`);
+                const statusEl = document.getElementById('sync-status');
+                if (statusEl) {
+                    statusEl.textContent = message;
+                    statusEl.className = `sync-status ${type}`;
+                    statusEl.style.display = 'block';
+
+                    // Hide success messages after 3 seconds
+                    if (type === 'success') {
+                        setTimeout(() => {
+                            statusEl.style.display = 'none';
+                        }, 3000);
+                    }
+                } else {
+                    console.error('Sync status element not found!');
+                }
+            }
+
+            // Markdown typing helpers
+            handleMarkdownEnter(e, textarea) {
+                const value = textarea.value;
+                const cursorPos = textarea.selectionStart;
+                const textBeforeCursor = value.substring(0, cursorPos);
+                const currentLine = textBeforeCursor.split('\n').pop();
+                
+                // Unordered list (-, *, +)
+                const unorderedMatch = currentLine.match(/^(\s*)([-*+])\s+(.*)$/);
+                if (unorderedMatch) {
+                    e.preventDefault();
+                    const [, indent, bullet, content] = unorderedMatch;
+                    
+                    // If the line is empty (just the bullet), remove it and exit list
+                    if (!content.trim()) {
+                        const lineStart = cursorPos - currentLine.length;
+                        textarea.value = value.substring(0, lineStart) + value.substring(cursorPos);
+                        textarea.selectionStart = textarea.selectionEnd = lineStart;
+                    } else {
+                        // Continue the list
+                        const newLine = `\n${indent}${bullet} `;
+                        textarea.value = value.substring(0, cursorPos) + newLine + value.substring(cursorPos);
+                        textarea.selectionStart = textarea.selectionEnd = cursorPos + newLine.length;
+                    }
+                    textarea.dispatchEvent(new Event('input'));
+                    return;
+                }
+                
+                // Ordered list (1., 2., etc.)
+                const orderedMatch = currentLine.match(/^(\s*)(\d+)\.\s+(.*)$/);
+                if (orderedMatch) {
+                    e.preventDefault();
+                    const [, indent, num, content] = orderedMatch;
+                    
+                    // If the line is empty, remove it and exit list
+                    if (!content.trim()) {
+                        const lineStart = cursorPos - currentLine.length;
+                        textarea.value = value.substring(0, lineStart) + value.substring(cursorPos);
+                        textarea.selectionStart = textarea.selectionEnd = lineStart;
+                    } else {
+                        // Continue with next number
+                        const nextNum = parseInt(num) + 1;
+                        const newLine = `\n${indent}${nextNum}. `;
+                        textarea.value = value.substring(0, cursorPos) + newLine + value.substring(cursorPos);
+                        textarea.selectionStart = textarea.selectionEnd = cursorPos + newLine.length;
+                    }
+                    textarea.dispatchEvent(new Event('input'));
+                    return;
+                }
+                
+                // Blockquote (>)
+                const blockquoteMatch = currentLine.match(/^(\s*)(>+)\s+(.*)$/);
+                if (blockquoteMatch) {
+                    e.preventDefault();
+                    const [, indent, quotes, content] = blockquoteMatch;
+                    
+                    if (!content.trim()) {
+                        const lineStart = cursorPos - currentLine.length;
+                        textarea.value = value.substring(0, lineStart) + value.substring(cursorPos);
+                        textarea.selectionStart = textarea.selectionEnd = lineStart;
+                    } else {
+                        const newLine = `\n${indent}${quotes} `;
+                        textarea.value = value.substring(0, cursorPos) + newLine + value.substring(cursorPos);
+                        textarea.selectionStart = textarea.selectionEnd = cursorPos + newLine.length;
+                    }
+                    textarea.dispatchEvent(new Event('input'));
+                    return;
+                }
+                
+                // Task list (- [ ] or - [x])
+                const taskMatch = currentLine.match(/^(\s*)([-*+])\s+\[([x ])\]\s+(.*)$/);
+                if (taskMatch) {
+                    e.preventDefault();
+                    const [, indent, bullet, , content] = taskMatch;
+                    
+                    if (!content.trim()) {
+                        const lineStart = cursorPos - currentLine.length;
+                        textarea.value = value.substring(0, lineStart) + value.substring(cursorPos);
+                        textarea.selectionStart = textarea.selectionEnd = lineStart;
+                    } else {
+                        const newLine = `\n${indent}${bullet} [ ] `;
+                        textarea.value = value.substring(0, cursorPos) + newLine + value.substring(cursorPos);
+                        textarea.selectionStart = textarea.selectionEnd = cursorPos + newLine.length;
+                    }
+                    textarea.dispatchEvent(new Event('input'));
+                    return;
+                }
+            }
+
+            handleMarkdownTab(e, textarea) {
+                e.preventDefault();
+                const value = textarea.value;
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                
+                // Insert tab (2 spaces)
+                const tab = '  ';
+                textarea.value = value.substring(0, start) + tab + value.substring(end);
+                textarea.selectionStart = textarea.selectionEnd = start + tab.length;
+                textarea.dispatchEvent(new Event('input'));
+            }
+        }
+
+        // Initialize the app
+        const app = new CatchAllApp();
+    </script>
+</body>
+</html>
