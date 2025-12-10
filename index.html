@@ -665,7 +665,12 @@
                         
                         // Auto-save on input
                         textarea.addEventListener('input', () => {
-                            this.columns[index].content = textarea.value;
+                            // Convert shorthand to standard format before saving
+                            let content = textarea.value;
+                            content = content
+                                .replace(/^(\s*)\+\s+(.*)$/gm, '$1- [ ] $2')  // + → - [ ]
+                                .replace(/^(\s*)\*\s+(.*)$/gm, '$1- [x] $2');  // * → - [x]
+                            this.columns[index].content = content;
                             this.saveColumns();
                         });
                         
@@ -685,13 +690,6 @@
                         
                         // Parse markdown and process task lists
                         let html = marked.parse(column.content);
-                        
-                        // Convert shorthand syntax to standard task list syntax before parsing
-                        let processedContent = column.content
-                            .replace(/^(\s*)\+\s+(.*)$/gm, '$1- [ ] $2')  // + → - [ ]
-                            .replace(/^(\s*)\*\s+(.*)$/gm, '$1- [x] $2');  // * → - [x]
-                        
-                        html = marked.parse(processedContent);
                         
                         // Replace task list items (do this BEFORE replacing standalone checkboxes)
                         // Checked tasks with strikethrough
