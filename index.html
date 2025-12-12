@@ -1072,11 +1072,16 @@
                     tab.classList.toggle('active', tab.dataset.tab === tabName);
                 });
                 
-                // Update tab content
+                // Update tab content - need to handle inline styles set by setupSettingsTabs
                 document.querySelectorAll('.tab-content').forEach(content => {
                     content.classList.remove('active');
+                    content.style.display = 'none';
                 });
-                document.getElementById(`tab-${tabName}`).classList.add('active');
+                const targetTab = document.getElementById(`tab-${tabName}`);
+                if (targetTab) {
+                    targetTab.classList.add('active');
+                    targetTab.style.display = 'block';
+                }
             }
 
             closeSettings() {
