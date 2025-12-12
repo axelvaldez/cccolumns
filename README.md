@@ -53,8 +53,8 @@ Follow the installation instructions below to set up password protection and clo
 ### Step 1: Clone or Download
 
 ```bash
-git clone https://github.com/axelvaldez/catch-all.git
-cd catch-all
+git clone https://github.com/axelvaldez/cccolumns.git
+cd cccolumns
 ```
 
 Or download the repository as a ZIP file.
@@ -98,7 +98,7 @@ http-server -p 8000
 1. Push to your GitHub repository
 2. Go to repository Settings > Pages
 3. Select branch and folder
-4. Access at `https://yourusername.github.io/catch-all`
+4. Access at `https://yourusername.github.io/cccolumns`
 
 #### Netlify
 
@@ -303,7 +303,7 @@ Your data in localStorage remains intact.
 ### File Structure
 
 ```
-catch-all/
+cccolumns/
 ├── index.html          # Main application file (single-file app)
 └── README.md          # This file
 ```
@@ -366,7 +366,7 @@ Created as a simple, self-contained note-taking solution for personal use.
 ## Support
 
 For issues, questions, or feature requests, please open an issue on GitHub:
-https://github.com/axelvaldez/catch-all/issues
+https://github.com/axelvaldez/cccolumns/issues
 
 ---
 
