@@ -1216,7 +1216,11 @@
                     }
 
                     // Create or update file
-                    const content = btoa(JSON.stringify(data, null, 2));
+                    // Properly encode UTF-8 to base64 to handle emojis, accents, and special characters
+                    const jsonString = JSON.stringify(data, null, 2);
+                    const utf8Bytes = new TextEncoder().encode(jsonString);
+                    const binaryString = Array.from(utf8Bytes, byte => String.fromCharCode(byte)).join('');
+                    const content = btoa(binaryString);
                     const updateUrl = `https://api.github.com/repos/${this.githubRepo}/contents/${fileName}`;
                     const updateResponse = await fetch(updateUrl, {
                         method: 'PUT',
@@ -1283,7 +1287,11 @@
                     }
 
                     const fileData = await response.json();
-                    const content = JSON.parse(atob(fileData.content));
+                    // Properly decode base64 to UTF-8 to handle emojis, accents, and special characters
+                    const binaryString = atob(fileData.content);
+                    const utf8Bytes = Uint8Array.from(binaryString, char => char.charCodeAt(0));
+                    const jsonString = new TextDecoder().decode(utf8Bytes);
+                    const content = JSON.parse(jsonString);
 
                     // Update local data
                     this.columns = content.columns;
