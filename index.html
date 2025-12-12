@@ -579,7 +579,7 @@
                 </div>
             </div>
 
-            <div class="tab-content" id="tab-install">
+            <div class="tab-content" id="tab-install" style="display: none;">
                 <div class="setting-item">
                     <h3 style="margin-bottom: 15px;">Install Your Own Instance</h3>
                     <p style="margin-bottom: 15px; line-height: 1.6;">
@@ -736,18 +736,21 @@
                 const backupTab = document.querySelector('[data-tab="backup"]');
                 const installTab = document.querySelector('[data-tab="install"]');
                 
+                const syncContent = document.getElementById('tab-sync');
+                const installContent = document.getElementById('tab-install');
+                
                 if (this.localOnlyMode) {
                     // In local-only mode: show Columns, Backup, and Install tabs
                     if (syncTab) syncTab.style.display = 'none';
                     if (installTab) installTab.style.display = 'block';
-                    document.getElementById('tab-sync').style.display = 'none';
-                    document.getElementById('tab-install').style.display = 'block';
+                    if (syncContent) syncContent.style.display = 'none';
+                    if (installContent) installContent.style.display = 'none'; // Start hidden, will show when tab clicked
                 } else {
                     // In authenticated mode: show Columns, GitHub Sync, and Backup tabs
                     if (installTab) installTab.style.display = 'none';
                     if (syncTab) syncTab.style.display = 'block';
-                    document.getElementById('tab-sync').style.display = 'block';
-                    document.getElementById('tab-install').style.display = 'none';
+                    if (syncContent) syncContent.style.display = 'none'; // Start hidden, will show when tab clicked
+                    if (installContent) installContent.style.display = 'none';
                 }
             }
 
